@@ -9,3 +9,13 @@ variable "rss_feed_url" {
   type        = string
   default     = "https://nedinthecloud.com/blog/index.xml"
 }
+
+variable "time_span" {
+  description = "Time span in hours to filter the RSS feed items"
+  type        = number
+  default     = 1
+  validation {
+    condition     = var.time_span > 0
+    error_message = "The time span must be a positive number."
+  }
+}

@@ -11,6 +11,12 @@ provider "aws" {
   region = var.aws_region
 }
 
+data "archive_file" "lambda_zip" {
+  type        = "zip"
+  source_file = "${path.module}/lambda/lambda_function.py"
+  output_path = "${path.module}/lambda/lambda_function.zip"
+}
+
 resource "aws_iam_role" "lambda_role" {
   name = "rss_parser_lambda_role"
 
@@ -41,12 +47,13 @@ resource "aws_lambda_layer_version" "feedparser_layer" {
 }
 
 resource "aws_lambda_function" "rss_parser" {
-  filename      = "./lambda/lambda_function.zip"
-  function_name = "rss_parser"
-  role          = aws_iam_role.lambda_role.arn
-  handler       = "lambda_function.lambda_handler"
-  runtime       = "python3.11"
-  layers        = [aws_lambda_layer_version.feedparser_layer.arn]
+  filename         = data.archive_file.lambda_zip.output_path
+  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+  function_name    = "rss_parser"
+  role             = aws_iam_role.lambda_role.arn
+  handler          = "lambda_function.lambda_handler"
+  runtime          = "python3.11"
+  layers           = [aws_lambda_layer_version.feedparser_layer.arn]
 
   timeout     = 30
   memory_size = 128
@@ -54,7 +61,7 @@ resource "aws_lambda_function" "rss_parser" {
   environment {
     variables = {
       RSS_FEED_URL = var.rss_feed_url # Replace with your actual RSS feed URL
-      # Add any other environment variables needed for your Lambda function here
+      TIME_SPAN    = var.time_span
     }
   }
 }

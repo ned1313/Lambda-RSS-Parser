@@ -12,23 +12,30 @@ def lambda_handler(event, context):
             'body': 'RSS_URL environment variable not set'
         }
     
+    # Get time span from environment variable (default to 1 hour)
+    try:
+        time_span = int(os.environ.get('TIME_SPAN', 1))
+    except ValueError:
+        time_span = 1
+    
     # Parse the RSS feed
     feed = feedparser.parse(rss_url)
     
-    # Get current time and time 1 hour ago
+    # Get current time and time span ago
     now = datetime.now()
-    one_hour_ago = now - timedelta(hours=1)
+    time_ago = now - timedelta(hours=time_span)
     
-    # Filter items from last hour
+    # Filter items from specified time span
     new_items = []
     for entry in feed.entries:
         # Convert published time to datetime
         published_time = datetime.fromtimestamp(time.mktime(entry.published_parsed))
         
-        if published_time > one_hour_ago:
+        if published_time > time_ago:
             new_items.append({
                 'title': entry.title,
-                'link': entry.link
+                'link': entry.link,
+                'content': entry.content[0].value if 'content' in entry else entry.summary
             })
     
     return {
